@@ -1,0 +1,18 @@
+Export metrics for prometheus
+
+Usage:
+  -bind-addr string
+    	http bind address (default ":9090")
+  -rabbitmq-exchange-name string
+    	RabbitMQ exchange name (default "REQUESTS_EXCHANGE")
+  -rabbitmq-host string
+    	RabbitMQ host (default "rabbitmq")
+  -rabbitmq-pass string
+    	RabbitMQ password (default "guest")
+  -rabbitmq-port int
+    	Rabbit MQ bind (default 5672)
+  -rabbitmq-queue-name string
+    	RabbitMQ queue name (default "MONITORING_QUEUE")
+  -rabbitmq-user string
+    	RabbitMQ username (default "guest")
+

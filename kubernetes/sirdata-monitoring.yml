@@ -1,0 +1,84 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sirdata-monitoring
+  namespace: default
+spec:
+  replicas: 1
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        run: sirdata-monitoring
+    spec:
+      nodeSelector:
+        run_apps: "true"
+      containers:
+        - name: sirdata-monitoring
+          image: registry.sirdata.fr/sirdata-monitoring:{VERSION}
+          imagePullPolicy: Always
+          command:
+            - /sirdata-monitoring
+          args:
+            - -mysql-dsn=$(MYSQL_USER):$(MYSQL_PASS)@tcp($(MYSQL_SERVER):3306)/$(MYSQL_DB)
+            - -bind-addr=:9090
+            - -kafka-brokers=kafka:9092
+            - -kafka-topic=requests
+            - -kafka-client-id=sirdata-monitoring
+            #- -rabbitmq-exchange-name=REQUESTS_EXCHANGE
+            #- -rabbitmq-queue-name=MONITORING_REQUESTS_QUEUE
+            #- -rabbitmq-host=rabbitmq-front
+            #- -rabbitmq-port=5672
+            #- -rabbitmq-user=$(RABBITMQ_USER) #TODO
+            #- -rabbitmq-pass=$(RABBITMQ_PASS) #TODO
+          volumeMounts:
+            - name: tz-config
+              mountPath: /etc/localtime
+              readOnly: true
+            - name: no-sa
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+          ports:
+            - containerPort: 9090
+          env:
+            - name: MYSQL_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-monitoring
+                  key: mysql_server
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-monitoring
+                  key: mysql_username
+            - name: MYSQL_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-monitoring
+                  key: mysql_password
+            - name: MYSQL_DB
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-monitoring
+                  key: mysql_db
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 9090
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 30
+          resources:
+            limits:
+              #cpu: 100m
+              memory: 5Gi
+      volumes:
+        - name: tz-config
+          hostPath:
+            path: /usr/share/zoneinfo/Europe/Paris
+        - name: no-sa
+          emptyDir: {}
